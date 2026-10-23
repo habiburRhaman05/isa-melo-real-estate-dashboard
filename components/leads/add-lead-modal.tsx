@@ -37,7 +37,7 @@ const EMPTY_DRAFT: Draft = {
   message: "",
 }
 
-export function AddLeadModal({ onClose }: { onClose: () => void }) {
+export function AddLeadModal({ onClose, onCreated }: { onClose: () => void; onCreated?: () => void }) {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
@@ -67,6 +67,9 @@ export function AddLeadModal({ onClose }: { onClose: () => void }) {
       return data
     },
     onSuccess: (data) => {
+      /* an active search or country filter would hide the lead that was just
+         saved (and every other one), so show the full list again */
+      onCreated?.()
       void queryClient.invalidateQueries({ queryKey: ["leads"] })
       toast(`${displayLeadId(data?.lead?.number ?? 0)} added`)
       if (data?.sync?.error) toast(`GoHighLevel sync failed: ${data.sync.error}`)

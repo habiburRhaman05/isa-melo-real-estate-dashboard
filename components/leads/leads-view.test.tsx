@@ -221,4 +221,28 @@ describe("leads toolbar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }))
     expect(await screen.findByText("Skyline Realty")).toBeInTheDocument()
   })
+
+  it("shows every lead again after adding one while a search is active", async () => {
+    fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return json({ lead: makeLead({ id: "55555555-5555-4555-8555-555555555555", number: 1002 }) }, 201)
+      }
+      return json({ leads: [makeLead()] })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    renderLeads()
+    fireEvent.click(screen.getByRole("button", { name: "Table" }))
+
+    const search = screen.getByPlaceholderText("Search name, phone, business, address")
+    fireEvent.change(search, { target: { value: "zzz" } })
+    expect(await screen.findByText("No leads match these filters.")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Add lead" }))
+    fireEvent.change(screen.getByLabelText(/^First name/), { target: { value: "Nadia" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save lead" }))
+
+    expect(await screen.findByText("Skyline Realty")).toBeInTheDocument()
+    expect((search as HTMLInputElement).value).toBe("")
+  })
 })

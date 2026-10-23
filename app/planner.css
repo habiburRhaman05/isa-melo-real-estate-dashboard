@@ -107,6 +107,14 @@
   .head h1 {
     margin: 8px 0 4px;
   }
+  /* header actions sit in one row; without this the .ex buttons (display:flex)
+     stack vertically and the head-right block collapses to one button wide */
+  .head-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
 
   /* ---------- stats ---------- */
   .stats {

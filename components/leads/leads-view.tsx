@@ -305,7 +305,7 @@ export function LeadsView({
 
       <AnimatePresence>
         {creating ? (
-          <AddLeadModal onClose={() => setCreating(false)} />
+          <AddLeadModal onClose={() => setCreating(false)} onCreated={() => setFilter(EMPTY_LEAD_FILTER)} />
         ) : selected ? (
           <LeadModal
             key={selected.id}

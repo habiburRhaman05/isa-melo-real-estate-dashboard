@@ -1,0 +1,598 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./planner.css";
+@import "./directory.css";
+@import "./leads.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =====================================================================
+   Isa Melo Real Estate Dashboard - brand tokens (from branding folder)
+   shadcn/ui format: HSL values WITHOUT the hsl() wrapper.
+   Tailwind v4 port: colors/fonts/radius in @theme inline, everything
+   else as plain @theme tokens.
+   ===================================================================== */
+
+@layer base {
+  :root {
+    /* ---- shadcn core ---- */
+    --background: 0 0% 100%;            /* #ffffff */
+    --foreground: 256 48% 14%;          /* #1b1233 ink */
+
+    --card: 0 0% 100%;
+    --card-foreground: 256 48% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 256 48% 14%;
+
+    --primary: 264 55% 39%;             /* #5a2d9c brand purple */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 262 69% 94%;           /* #ece4fa brand-soft */
+    --secondary-foreground: 264 55% 39%;
+
+    --muted: 262 67% 98%;               /* #f8f5fd column bg */
+    --muted-foreground: 253 13% 47%;    /* #6f6888 */
+
+    --accent: 262 69% 94%;              /* #ece4fa */
+    --accent-foreground: 264 55% 39%;
+
+    --destructive: 349 60% 44%;         /* #b32d45 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 261 41% 92%;              /* #e8e2f3 line */
+    --input: 261 41% 92%;
+    --ring: 262 52% 71%;                /* #a98ddb focus */
+
+    --radius: 0.75rem;                  /* 12px: inputs + buttons */
+
+    /* ---- brand extras (not in default shadcn) ---- */
+    --brand: 264 55% 39%;               /* #5a2d9c */
+    --brand-hover: 264 58% 33%;         /* #4a2385 */
+    --brand-soft: 262 69% 94%;          /* #ece4fa */
+    --brand-deep: 259 63% 21%;          /* #2a1458 avatar / toast */
+    --panel: 262 67% 95%;               /* #f1ebfb board panel */
+    --column: 262 67% 98%;              /* #f8f5fd kanban column */
+    --faint: 253 17% 64%;               /* #9a93b3 */
+    --label: 255 26% 33%;               /* #4a3f6b form labels */
+    --border-hover: 260 47% 83%;        /* #cdbfe8 */
+    --soft-border: 261 62% 87%;         /* #d9cbf3 */
+    --dot-grid: 259 49% 85%;            /* #d3c7ec board dot pattern */
+
+    --gold: 40 77% 31%;                 /* #8a6212 eyebrow / badges */
+    --gold-soft: 47 72% 87%;            /* #f6ecc8 */
+    --gold-border: 41 73% 80%;          /* #f1d9a6 */
+    --amber-soft: 38 86% 89%;           /* #fbe9c9 high priority bg */
+    --amber-foreground: 37 80% 30%;     /* #8a5a0f */
+
+    --danger-soft: 349 81% 96%;         /* #fdecef revision box */
+    --danger-border: 349 66% 87%;       /* #f4c9d1 */
+    --danger-text: 348 58% 31%;         /* #7d2133 */
+
+    --success: 154 50% 29%;             /* #25704f */
+    --success-soft: 148 37% 90%;        /* #dcefe5 */
+
+    --low-soft: 267 27% 94%;            /* #eeeaf3 low priority bg */
+    --low-foreground: 255 12% 45%;      /* #6b6480 */
+
+    /* ---- pipeline stage colors ---- */
+    --stage-new: 256 36% 71%;           /* #a99bd0 */
+    --stage-working: 264 55% 39%;       /* #5a2d9c */
+    --stage-review: 44 100% 24%;        /* #7a5a00 */
+    --stage-revision: 351 56% 48%;      /* #c0364a */
+    --stage-approved: 42 67% 50%;       /* #d4a02a */
+    --stage-posted: 154 54% 40%;        /* #2f9e6e */
+
+    /* ---- charts ---- */
+    --chart-1: 264 55% 39%;
+    --chart-2: 40 77% 31%;
+    --chart-3: 154 50% 29%;
+    --chart-4: 349 60% 44%;
+    --chart-5: 256 36% 71%;
+  }
+
+  /* Derived dark theme (original design has no dark mode) */
+  .dark {
+    --background: 256 48% 8%;
+    --foreground: 262 40% 94%;
+
+    --card: 256 40% 11%;
+    --card-foreground: 262 40% 94%;
+    --popover: 256 40% 11%;
+    --popover-foreground: 262 40% 94%;
+
+    --primary: 262 70% 68%;
+    --primary-foreground: 256 48% 10%;
+
+    --secondary: 259 40% 20%;
+    --secondary-foreground: 262 60% 90%;
+
+    --muted: 256 35% 14%;
+    --muted-foreground: 253 20% 68%;
+
+    --accent: 259 40% 20%;
+    --accent-foreground: 262 60% 90%;
+
+    --destructive: 349 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 259 30% 22%;
+    --input: 259 30% 22%;
+    --ring: 262 52% 60%;
+
+    --brand: 262 70% 68%;
+    --brand-hover: 262 70% 74%;
+    --brand-soft: 259 40% 20%;
+    --brand-deep: 259 63% 14%;
+    --panel: 256 40% 12%;
+    --column: 256 38% 15%;
+    --faint: 253 17% 55%;
+    --label: 262 30% 80%;
+    --border-hover: 260 30% 32%;
+    --soft-border: 260 30% 28%;
+    --dot-grid: 259 30% 22%;
+
+    --gold: 42 75% 60%;
+    --gold-soft: 40 50% 18%;
+    --gold-border: 40 40% 28%;
+    --amber-soft: 38 50% 18%;
+    --amber-foreground: 40 80% 65%;
+
+    --danger-soft: 349 40% 16%;
+    --danger-border: 349 40% 28%;
+    --danger-text: 349 70% 80%;
+
+    --success: 154 50% 55%;
+    --success-soft: 154 35% 15%;
+
+    --low-soft: 256 20% 18%;
+    --low-foreground: 255 15% 65%;
+
+    --stage-new: 256 36% 71%;
+    --stage-working: 262 60% 70%;
+    --stage-review: 44 100% 40%;
+    --stage-revision: 351 56% 62%;
+    --stage-approved: 42 67% 60%;
+    --stage-posted: 154 54% 52%;
+
+    --chart-1: 262 70% 68%;
+    --chart-2: 42 75% 60%;
+    --chart-3: 154 50% 55%;
+    --chart-4: 349 70% 55%;
+    --chart-5: 256 36% 71%;
+  }
+
+  /* ===================================================================
+     Global typography
+     Body : Inter 14px
+     Serif: Fraunces (h1, h2, stat numbers)
+     =================================================================== */
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  /* Headings (serif) - matches h1 / modal h2 from the source design */
+  h1 {
+    @apply font-serif;
+    font-weight: 500;
+    font-size: 44px;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  h2 {
+    @apply font-serif;
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1.2;
+  }
+  /* Card title (sans, bold) */
+  h3 {
+    font-size: 17px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+  }
+
+  /* Dot-grid board background */
+  .board-panel {
+    background-color: hsl(var(--panel));
+    background-image: radial-gradient(hsl(var(--dot-grid)) 1.3px, transparent 1.4px);
+    background-size: 18px 18px;
+    border: 1px solid #e6dcf5;
+    border-radius: 24px;
+    padding: 14px;
+  }
+}
+
+/* =====================================================================
+   Tailwind v4 theme: map the CSS variables above to utilities.
+   ===================================================================== */
+@theme inline {
+  /* Fonts */
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
+
+  /* shadcn core colors */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  /* Brand extras */
+  --color-brand: hsl(var(--brand));
+  --color-brand-hover: hsl(var(--brand-hover));
+  --color-brand-soft: hsl(var(--brand-soft));
+  --color-brand-deep: hsl(var(--brand-deep));
+  --color-panel: hsl(var(--panel));
+  --color-column: hsl(var(--column));
+  --color-faint: hsl(var(--faint));
+  --color-label: hsl(var(--label));
+  --color-border-hover: hsl(var(--border-hover));
+  --color-soft-border: hsl(var(--soft-border));
+
+  --color-gold: hsl(var(--gold));
+  --color-gold-soft: hsl(var(--gold-soft));
+  --color-gold-border: hsl(var(--gold-border));
+  --color-amber-soft: hsl(var(--amber-soft));
+  --color-amber-foreground: hsl(var(--amber-foreground));
+  --color-danger-soft: hsl(var(--danger-soft));
+  --color-danger-border: hsl(var(--danger-border));
+  --color-danger-text: hsl(var(--danger-text));
+  --color-success: hsl(var(--success));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-low-soft: hsl(var(--low-soft));
+  --color-low-foreground: hsl(var(--low-foreground));
+
+  /* Pipeline stages -> bg-stage-new, text-stage-posted, etc. */
+  --color-stage-new: hsl(var(--stage-new));
+  --color-stage-working: hsl(var(--stage-working));
+  --color-stage-review: hsl(var(--stage-review));
+  --color-stage-revision: hsl(var(--stage-revision));
+  --color-stage-approved: hsl(var(--stage-approved));
+  --color-stage-posted: hsl(var(--stage-posted));
+
+  /* Charts */
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  /* Radius (lg = 12px inputs/buttons, via --radius) */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme {
+  /* ---- Type scale (from the source design) ---- */
+  /* h1 page title */
+  --text-display: 44px;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.01em;
+  --text-display--font-weight: 500;
+  /* stat numbers */
+  --text-stat: 42px;
+  --text-stat--line-height: 1.1;
+  --text-stat--font-weight: 400;
+  /* modal h2 */
+  --text-title: 26px;
+  --text-title--line-height: 1.2;
+  --text-title--font-weight: 500;
+  /* lead name (serif) */
+  --text-name-lg: 20px;
+  --text-name-lg--line-height: 1.3;
+  /* calendar month (serif) */
+  --text-cal-title: 17px;
+  --text-cal-title--line-height: 1.3;
+  --text-cal-title--font-weight: 500;
+  /* h3 card title */
+  --text-card-title: 17px;
+  --text-card-title--line-height: 1.25;
+  --text-card-title--letter-spacing: -0.01em;
+  --text-card-title--font-weight: 700;
+  /* body */
+  --text-body: 14px;
+  --text-body--line-height: 1.5;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 1.5;
+  --text-body-xs: 12.5px;
+  --text-body-xs--line-height: 1.4;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.4;
+  --text-caption-sm: 11.5px;
+  --text-caption-sm--line-height: 1.4;
+  /* micro / uppercase labels */
+  --text-eyebrow: 11px;
+  --text-eyebrow--letter-spacing: 0.2em;
+  --text-eyebrow--font-weight: 700;
+  --text-micro: 10.5px;
+  --text-micro--letter-spacing: 0.12em;
+  --text-micro--font-weight: 700;
+  --text-badge: 9.5px;
+  --text-badge--letter-spacing: 0.1em;
+  --text-badge--font-weight: 700;
+
+  --tracking-eyebrow: 0.2em;
+  --tracking-label: 0.14em;
+  --tracking-th: 0.12em;
+
+  /* ---- Brand radii ---- */
+  --radius-card: 16px;
+  --radius-card-sm: 14px;
+  --radius-stat: 18px;
+  --radius-modal: 22px;
+  --radius-panel: 24px;
+
+  /* ---- Shadows ---- */
+  --shadow-button: 0 4px 14px rgba(90, 45, 156, 0.25);
+  --shadow-card: 0 1px 2px rgba(40, 20, 80, 0.05);
+  --shadow-card-hover: 0 8px 22px rgba(60, 30, 120, 0.14);
+  --shadow-popover: 0 20px 50px rgba(40, 20, 90, 0.22);
+  --shadow-modal: 0 30px 80px rgba(30, 10, 70, 0.35);
+  --shadow-focus: 0 0 0 3px rgba(122, 84, 200, 0.15);
+
+  /* ---- Layout ---- */
+  --spacing-topbar: 72px;
+
+  /* ---- Accordion (radix) ---- */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+/* =====================================================================
+   Reusable brand components
+   ===================================================================== */
+@layer components {
+  /* "SOCIAL MEDIA BOARD" small gold label above page titles */
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: hsl(var(--gold));
+  }
+
+  /* modal section title ("TASK", "SCHEDULE AND OWNERSHIP") */
+  .pane-title {
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: hsl(var(--gold));
+  }
+
+  /* big serif number in stat tiles */
+  .stat-number {
+    @apply font-serif;
+    font-weight: 400;
+    font-size: 42px;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #6b3fb0;
+  }
+
+  /* table header cell */
+  .th-label {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #6b5f8a;
+  }
+
+  /* form label */
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: hsl(var(--label));
+  }
+
+  /* primary CTA exactly like .btn-primary */
+  .btn-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: hsl(var(--brand));
+    box-shadow: var(--shadow-button);
+    transition: background 0.15s;
+  }
+  .btn-brand:hover {
+    background: hsl(var(--brand-hover));
+  }
+
+  /* pill filter button (.pill-btn) */
+  .pill-btn {
+    border: 1px solid hsl(var(--border));
+    background: #fff;
+    border-radius: 999px;
+    padding: 11px 18px;
+    font-weight: 500;
+    color: hsl(var(--btn-text, 258 49% 22%));
+  }
+  .pill-btn:hover {
+    border-color: hsl(var(--border-hover));
+  }
+  .pill-btn[data-active="true"] {
+    background: hsl(var(--brand));
+    border-color: hsl(var(--brand));
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* kanban card (.card) */
+  .board-card {
+    background: #fff;
+    border: 1px solid #ece6f6;
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+  }
+  .board-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: #d6c8ee;
+    transform: translateY(-1px);
+  }
+
+  /* priority pills */
+  .prio {
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 4px 11px;
+    border: 1px solid transparent;
+  }
+  .prio-high {
+    background: hsl(var(--amber-soft));
+    color: hsl(var(--amber-foreground));
+    border-color: hsl(var(--gold-border));
+  }
+  .prio-medium {
+    background: hsl(var(--brand-soft));
+    color: hsl(var(--brand));
+    border-color: hsl(var(--soft-border));
+  }
+  .prio-low {
+    background: hsl(var(--low-soft));
+    color: hsl(var(--low-foreground));
+    border-color: #e0dbe8;
+  }
+
+  /* ---------- post-login splash ---------- */
+  .login-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: linear-gradient(160deg, hsl(var(--brand-deep)), hsl(var(--brand)));
+    color: #fff;
+  }
+  .login-splash-mark {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.14);
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .login-splash-text {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .login-splash-sub {
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0.78;
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------- loading skeletons ---------- */
+  .skel {
+    display: block;
+    border-radius: 8px;
+    background: linear-gradient(
+      100deg,
+      hsl(var(--panel)) 30%,
+      hsl(var(--brand-soft)) 50%,
+      hsl(var(--panel)) 70%
+    );
+    background-size: 250% 100%;
+    animation: skel-shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes skel-shimmer {
+    0% {
+      background-position: 180% 0;
+    }
+    100% {
+      background-position: -80% 0;
+    }
+  }
+}
+
+.dark .btn-brand,
+.dark .pill-btn,
+.dark .board-card {
+  background: hsl(var(--card));
+}
+.dark .board-card {
+  border-color: hsl(var(--soft-border));
+}

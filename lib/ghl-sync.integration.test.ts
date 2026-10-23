@@ -1,4 +1,4 @@
-import { eq, inArray, like } from "drizzle-orm"
+import { eq, inArray, like, or } from "drizzle-orm"
 
 import { randomUUID } from "node:crypto"
 
@@ -40,6 +40,7 @@ const tag = randomUUID().slice(0, 8)
 
 type Call = {
   path: string
+  query: string
   method: string
   body: Record<string, unknown> | undefined
   headers: Record<string, string>
@@ -65,6 +66,7 @@ beforeEach(() => {
       const url = new URL(raw)
       const call: Call = {
         path: url.pathname,
+        query: url.search,
         method: init?.method ?? "GET",
         body:
           typeof init?.body === "string"
@@ -83,11 +85,22 @@ afterEach(() => {
 })
 
 afterAll(async () => {
-  const rows = await db.select({ id: leads.id }).from(leads).where(like(leads.email, `%${tag}%`))
-  if (rows.length > 0) {
-    await db.delete(leadActivities).where(inArray(leadActivities.leadId, rows.map((row) => row.id)))
-  }
-  await db.delete(leads).where(like(leads.email, `%${tag}%`))
+  /* some cases (the phone-match import) create a lead with no email, so match
+     the GHL contact id and phone tag too or those rows outlive the suite */
+  const rows = await db
+    .select({ id: leads.id })
+    .from(leads)
+    .where(
+      or(
+        like(leads.email, `%${tag}%`),
+        like(leads.ghlContactId, `%${tag}%`),
+        like(leads.phone, `%${tag.slice(0, 5)}%`),
+      ),
+    )
+  if (rows.length === 0) return
+  const ids = rows.map((row) => row.id)
+  await db.delete(leadActivities).where(inArray(leadActivities.leadId, ids))
+  await db.delete(leads).where(inArray(leads.id, ids))
 })
 
 async function makeLead(overrides: Partial<typeof leads.$inferInsert> = {}) {
@@ -157,7 +170,8 @@ describe("dashboard -> GoHighLevel", () => {
       email: lead.email,
       phone: lead.phone,
       address1: "Marina Gate 2",
-      country: "UAE",
+      /* the dashboard stores country names, GHL only accepts ISO codes */
+      country: "AE",
       companyName: "Skyline Realty",
       source: "Website",
       locationId: "loc-test",
@@ -309,6 +323,13 @@ describe("GoHighLevel -> dashboard", () => {
     const result = await syncLeadsFromGhl()
     expect(result).toMatchObject({ connected: true, scanned: 2, created: 1, updated: 1 })
 
+    /* GHL's opportunity search rejects camelCase query keys with HTTP 422 and
+       hides closed opportunities unless status=all */
+    const search = new URLSearchParams(calls.find((call) => call.path === "/opportunities/search")!.query)
+    expect(search.get("location_id")).toBe("loc-test")
+    expect(search.get("pipeline_id")).toBe("pipe-test")
+    expect(search.get("status")).toBe("all")
+
     const imported = await db.query.leads.findFirst({ where: eq(leads.ghlContactId, `c-new-${tag}`) })
     expect(imported).toMatchObject({
       firstName: "Omar",
@@ -374,6 +395,29 @@ describe("GoHighLevel -> dashboard", () => {
 
     const imported = await db.query.leads.findFirst({ where: eq(leads.ghlContactId, `c-noopp-${tag}`) })
     expect(imported?.stage).toBe("st-new")
+  })
+
+  it("skips a lead deleted in the dashboard instead of failing on its unique contact id", async () => {
+    const deleted = await makeLead({
+      email: `deleted-${tag}@ghl-it.local`,
+      ghlContactId: `c-del-${tag}`,
+      deletedAt: new Date(),
+    })
+
+    respond = (call) => {
+      if (call.path === "/contacts/") {
+        return json({ count: 1, contacts: [contact({ id: `c-del-${tag}`, email: `deleted-${tag}@ghl-it.local` })] })
+      }
+      if (call.path === "/opportunities/search") return json({ opportunities: [] })
+      return json({})
+    }
+
+    expect(await syncLeadsFromGhl()).toMatchObject({ connected: true, scanned: 1, created: 0, updated: 0 })
+
+    const rows = await db.select().from(leads).where(eq(leads.ghlContactId, `c-del-${tag}`))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.id).toBe(deleted.id)
+    expect(rows[0]?.deletedAt).toBeInstanceOf(Date)
   })
 
   it("matches an existing lead by phone when the contact has no email", async () => {

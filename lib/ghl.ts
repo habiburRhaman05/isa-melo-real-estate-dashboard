@@ -29,6 +29,9 @@ export class GhlApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
+    /* extra machine-readable context GHL attaches to some errors, e.g. the
+       existing opportunity id on OPPORTUNITY_NO_DUPLICATE */
+    public meta?: Record<string, unknown>,
   ) {
     super(message)
     this.name = "GhlApiError"
@@ -70,14 +73,21 @@ async function ghlRequest<T>(path: string, init?: RequestInit): Promise<T> {
     const detail = await res.text().catch(() => "")
     let message = detail
     let code: string | undefined
+    let meta: Record<string, unknown> | undefined
     try {
-      const parsed = JSON.parse(detail) as { message?: string; code?: string }
-      if (parsed.message) message = parsed.message
+      const parsed = JSON.parse(detail) as {
+        message?: string | string[]
+        code?: string
+        meta?: Record<string, unknown>
+      }
+      if (typeof parsed.message === "string") message = parsed.message
+      else if (Array.isArray(parsed.message)) message = parsed.message.join(", ")
       code = parsed.code
+      meta = parsed.meta
     } catch {
       /* not JSON, use the raw text as-is */
     }
-    throw new GhlApiError(message || `GHL request failed (${res.status})`, res.status, code)
+    throw new GhlApiError(message || `GHL request failed (${res.status})`, res.status, code, meta)
   }
 
   return (await res.json()) as T
@@ -209,10 +219,94 @@ export async function getContact(id: string): Promise<GhlContact | null> {
   return data.contact ?? null
 }
 
+/* GHL only accepts ISO-3166 two-letter country codes and rejects the whole
+   contact write otherwise ("country must be valid"), while the dashboard lets
+   people type a country name. Map the common names and drop anything else
+   instead of failing the sync; the local lead keeps the original value. */
+const COUNTRY_CODES: Record<string, string> = {
+  uae: "AE",
+  "united arab emirates": "AE",
+  "saudi arabia": "SA",
+  ksa: "SA",
+  qatar: "QA",
+  kuwait: "KW",
+  bahrain: "BH",
+  oman: "OM",
+  india: "IN",
+  pakistan: "PK",
+  bangladesh: "BD",
+  "sri lanka": "LK",
+  nepal: "NP",
+  afghanistan: "AF",
+  uk: "GB",
+  "united kingdom": "GB",
+  "great britain": "GB",
+  england: "GB",
+  ireland: "IE",
+  usa: "US",
+  "united states": "US",
+  "united states of america": "US",
+  canada: "CA",
+  australia: "AU",
+  "new zealand": "NZ",
+  germany: "DE",
+  france: "FR",
+  spain: "ES",
+  italy: "IT",
+  netherlands: "NL",
+  belgium: "BE",
+  switzerland: "CH",
+  austria: "AT",
+  portugal: "PT",
+  poland: "PL",
+  romania: "RO",
+  greece: "GR",
+  turkey: "TR",
+  russia: "RU",
+  ukraine: "UA",
+  egypt: "EG",
+  morocco: "MA",
+  tunisia: "TN",
+  algeria: "DZ",
+  nigeria: "NG",
+  ghana: "GH",
+  kenya: "KE",
+  "south africa": "ZA",
+  israel: "IL",
+  lebanon: "LB",
+  jordan: "JO",
+  iraq: "IQ",
+  iran: "IR",
+  china: "CN",
+  "hong kong": "HK",
+  taiwan: "TW",
+  japan: "JP",
+  "south korea": "KR",
+  singapore: "SG",
+  malaysia: "MY",
+  indonesia: "ID",
+  thailand: "TH",
+  vietnam: "VN",
+  philippines: "PH",
+  brazil: "BR",
+  mexico: "MX",
+}
+
+function ghlCountry(value?: string): string | undefined {
+  const trimmed = value?.trim()
+  if (!trimmed) return undefined
+  if (/^[A-Za-z]{2}$/.test(trimmed)) return trimmed.toUpperCase()
+  return COUNTRY_CODES[trimmed.toLowerCase()]
+}
+
+function contactBody(input: GhlContactInput) {
+  return compact({ ...input, country: ghlCountry(input.country) })
+}
+
 export async function upsertContact(input: GhlContactInput): Promise<{ contact: GhlContact; created: boolean }> {
   const data = await ghlRequest<{ contact?: GhlContact; new?: boolean }>("/contacts/upsert", {
     method: "POST",
-    body: JSON.stringify({ ...compact(input), locationId: getGhlLocationId() }),
+    body: JSON.stringify({ ...contactBody(input), locationId: getGhlLocationId() }),
   })
   if (!data.contact) throw new GhlApiError("GHL did not return the saved contact", 502)
   return { contact: data.contact, created: data.new ?? false }
@@ -221,7 +315,7 @@ export async function upsertContact(input: GhlContactInput): Promise<{ contact: 
 export async function updateContact(id: string, input: GhlContactInput): Promise<GhlContact> {
   const data = await ghlRequest<{ contact?: GhlContact }>(`/contacts/${encodeURIComponent(id)}`, {
     method: "PUT",
-    body: JSON.stringify(compact(input)),
+    body: JSON.stringify(contactBody(input)),
   })
   return data.contact ?? { id }
 }
@@ -243,19 +337,24 @@ export type GhlOpportunity = {
   updatedAt?: string
 }
 
+/* The opportunity search endpoint only accepts snake_case query keys; the
+   camelCase ones used elsewhere return HTTP 422. It also returns only open
+   opportunities unless status=all, so closed stages (Won / Lost) need it. */
 export async function searchOpportunities(params: {
   pipelineId?: string
   contactId?: string
+  status?: GhlOpportunityStatus | "all"
   limit?: number
   page?: number
 }): Promise<GhlOpportunity[]> {
   const query = new URLSearchParams({
-    locationId: getGhlLocationId(),
+    location_id: getGhlLocationId(),
+    status: params.status ?? "all",
     limit: String(params.limit ?? 100),
     page: String(params.page ?? 1),
   })
-  if (params.pipelineId) query.set("pipelineId", params.pipelineId)
-  if (params.contactId) query.set("contactId", params.contactId)
+  if (params.pipelineId) query.set("pipeline_id", params.pipelineId)
+  if (params.contactId) query.set("contact_id", params.contactId)
 
   const data = await ghlRequest<{ opportunities?: GhlOpportunity[] }>(
     `/opportunities/search?${query.toString()}`,
@@ -271,12 +370,26 @@ export async function createOpportunity(input: {
   status: GhlOpportunityStatus
   monetaryValue: number
 }): Promise<GhlOpportunity> {
-  const data = await ghlRequest<{ opportunity?: GhlOpportunity }>("/opportunities/", {
-    method: "POST",
-    body: JSON.stringify({ ...input, locationId: getGhlLocationId() }),
-  })
-  if (!data.opportunity?.id) throw new GhlApiError("GHL did not return the created opportunity", 502)
-  return data.opportunity
+  try {
+    const data = await ghlRequest<{ opportunity?: GhlOpportunity }>("/opportunities/", {
+      method: "POST",
+      body: JSON.stringify({ ...input, locationId: getGhlLocationId() }),
+    })
+    if (!data.opportunity?.id) throw new GhlApiError("GHL did not return the created opportunity", 502)
+    return data.opportunity
+  } catch (error) {
+    /* GHL allows one opportunity per contact per pipeline. When the contact
+       already has one (e.g. a GHL form/workflow created it first), attach to
+       that opportunity and update it instead of failing the sync. */
+    if (error instanceof GhlApiError && error.code === "OPPORTUNITY_NO_DUPLICATE") {
+      const existingId = error.meta?.existingId
+      if (typeof existingId === "string" && existingId) {
+        const updated = await updateOpportunity(existingId, input)
+        return { ...updated, id: existingId }
+      }
+    }
+    throw error
+  }
 }
 
 export async function updateOpportunity(

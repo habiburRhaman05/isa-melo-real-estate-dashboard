@@ -68,6 +68,12 @@ function pipelineName() {
   return env.GHL_PIPELINE_NAME?.trim() || DEFAULT_PIPELINE_NAME
 }
 
+/* GHL names pipelines freely ("Dubai Off-Plan Sales" vs "Dubai Off Plan
+   Sales"), so match on letters and digits only. */
+function normalizePipelineName(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+}
+
 function fallbackPipeline(): LeadPipeline {
   return {
     id: null,
@@ -163,9 +169,9 @@ export async function getLeadPipeline(): Promise<LeadPipeline> {
 
   try {
     const pipelines = await listPipelines()
-    const wanted = pipelineName().toLowerCase()
+    const wanted = normalizePipelineName(pipelineName())
     const pipeline =
-      pipelines.find((item) => item.name.trim().toLowerCase() === wanted) ??
+      pipelines.find((item) => normalizePipelineName(item.name) === wanted) ??
       pipelines.find((item) => /dubai/i.test(item.name) && /off/i.test(item.name) && /plan/i.test(item.name)) ??
       pipelines[0]
 

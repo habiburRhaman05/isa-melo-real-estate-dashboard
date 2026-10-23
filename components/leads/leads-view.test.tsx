@@ -190,7 +190,7 @@ describe("leads toolbar", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     renderLeads()
-    fireEvent.click(screen.getByRole("button", { name: "Sync GHL" }))
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
 
     expect(await screen.findByText("GoHighLevel: 2 new, 1 updated")).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith("/api/leads/sync", { method: "POST" })
@@ -203,7 +203,7 @@ describe("leads toolbar", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     renderLeads()
-    fireEvent.click(screen.getByRole("button", { name: "Sync GHL" }))
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
 
     expect(
       await screen.findByText("GoHighLevel is not connected. Set GHL_PIT_TOKEN and GHL_LOCATION_ID."),

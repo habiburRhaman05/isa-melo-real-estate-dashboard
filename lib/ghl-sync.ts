@@ -140,10 +140,17 @@ function pickGhl(next: string | null | undefined, current: string | undefined) {
 }
 
 async function findExistingLead(contact: GhlContact) {
-  const clauses = [eq(leads.ghlContactId, contact.id)]
+  /* look the GHL id up among deleted leads too: ghl_contact_id is unique, so a
+     lead deleted in the dashboard would otherwise make the next pull try to
+     insert the same id and fail the whole sync with a duplicate key error */
+  const linked = await db.query.leads.findFirst({ where: eq(leads.ghlContactId, contact.id) })
+  if (linked) return linked
+
+  const clauses = []
   const email = normalizeEmail(contact.email)
   if (email) clauses.push(sql`lower(${leads.email}) = ${email}`)
   if (contact.phone?.trim()) clauses.push(eq(leads.phone, contact.phone.trim()))
+  if (clauses.length === 0) return undefined
 
   return db.query.leads.findFirst({
     where: and(isNull(leads.deletedAt), or(...clauses)),
@@ -156,6 +163,10 @@ async function upsertLeadFromContact(
   pipeline: LeadPipeline,
 ): Promise<"created" | "updated" | "skipped"> {
   const existing = await findExistingLead(contact)
+  /* a lead deleted in the dashboard stays deleted even though the GHL contact
+     still exists; re-importing it would undo the user's deletion */
+  if (existing?.deletedAt) return "skipped"
+
   const nameParts = splitName(contact)
   const oppStage =
     opportunity?.pipelineStageId && pipeline.stages.some((stage) => stage.id === opportunity.pipelineStageId)
